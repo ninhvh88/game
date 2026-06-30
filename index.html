@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFLATION WARS: MACROECONOMIC SIMULATOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff007f;
+            --neon-green: #39ff14;
+            --neon-yellow: #ffb703;
+            --metal-dark: #12131a;
+            --screen-bg: #0c0d14;
+            --glow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+
+        body {
+            background-color: #06070d;
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, Red, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%;
+            color: #e2e8f0;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .arcade-cabinet {
+            background: linear-gradient(135deg, #1e1e2f 0%, #0f0f1a 100%);
+            border: 4px solid #2d2d44;
+            border-radius: 24px;
+            padding: 25px;
+            width: 100%;
+            max-width: 1350px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.05), 0 0 0 10px #151522;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .marquee {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+            padding: 15px 0;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--neon-blue);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.3), var(--glow);
+            letter-spacing: 2px;
+        }
+
+        .marquee span {
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 8px;
+            color: var(--neon-yellow);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .arcade-screen {
+            background: var(--screen-bg);
+            border: 6px solid #222533;
+            border-radius: 16px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 310px 1fr 300px;
+            gap: 20px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .screen-column h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            letter-spacing: 1px;
+        }
+
+        .challenge-list { display: flex; flex-direction: column; gap: 12px; }
+        .challenge-card {
+            background: rgba(20, 23, 38, 0.7);
+            border: 1px solid #2d3149;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            transition: all 0.25s ease;
+        }
+        .challenge-card.active {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 127, 0.08);
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+        }
+        
+        .challenge-icon { font-size: 2.2rem; }
+        .challenge-info h4 { margin: 0; font-size: 1.05rem; color: #fff; font-family: 'Orbitron', sans-serif; }
+        .challenge-info p { margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8; line-height: 1.3; }
+        .challenge-tag { font-size: 0.75rem; font-weight: bold; margin-top: 6px; display: inline-block; padding: 2px 6px; background: rgba(0,0,0,0.3); border-radius: 4px; }
+
+        .center-display { display: flex; flex-direction: column; justify-content: space-between; }
+        .top-status {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .status-box {
+            background: #08090f;
+            border: 1px solid #222538;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .status-box div { font-size: 0.75rem; color: #64748b; font-weight: bold; }
+        .status-box span { font-size: 1.6rem; font-weight: bold; display: block; margin-top: 4px; font-family: 'Orbitron', sans-serif; }
+
+        .chart-frame {
+            background: #040508;
+            border: 2px solid #1a1c29;
+            border-radius: 12px;
+            padding: 15px;
+            height: 280px; 
+            position: relative;
+        }
+
+        /* Hệ thống thông báo Combo/Khen thưởng */
+        .combo-alert {
+            background: rgba(57, 255, 20, 0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            display: none;
+        }
+
+        .news-feed {
+            background: #000;
+            border: 1px solid var(--neon-pink);
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 6px;
+            display: flex;
+            overflow: hidden;
+        }
+        .news-feed label { color: var(--neon-pink); font-weight: bold; margin-right: 15px; font-family: 'Orbitron', sans-serif; font-size: 0.8rem; align-self: center;}
+        .news-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; color: var(--neon-green); font-size: 1rem; }
+        @keyframes marquee { 0% { transform: translate3d(100%, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        /* BẢNG TẬP SỰ / DANH HIỆU (CỘT PHẢI) */
+        .hardware-panel { display: flex; flex-direction: column; gap: 15px; }
+        
+        .achievement-box {
+            background: #08090f;
+            border: 1px solid #222538;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .achievement-item {
+            display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; color: #64748b;
+        }
+        .achievement-item.unlocked {
+            color: var(--neon-yellow); text-shadow: 0 0 5px rgba(255,183,3,0.3);
+        }
+
+        .arcade-slider {
+            background: #08090f;
+            border: 1px solid #222538;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .arcade-slider label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: #94a3b8; font-family: 'Orbitron', sans-serif;}
+        .arcade-slider input[type=range] { -webkit-appearance: none; width: 100%; height: 6px; background: #1b1d2a; border-radius: 4px; outline: none; }
+        .arcade-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 20px; background: #fff; border-radius: 3px; cursor: pointer; border: 2px solid var(--neon-blue); }
+
+        .action-pad { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: auto; }
+        .btn-wrapper { text-align: center; }
+        .btn-wrapper span { font-size: 0.75rem; color: #64748b; display: block; margin-top: 4px; font-weight: bold; }
+        
+        .arcade-btn {
+            background: radial-gradient(circle, #ff3366 0%, #cc0044 100%);
+            border: none; border-radius: 50%; width: 65px; height: 65px; margin: 0 auto; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.2rem; color: white;
+            box-shadow: 0 5px 0 #880022, 0 8px 15px rgba(0,0,0,0.6); transition: all 0.05s ease;
+        }
+        .arcade-btn:active:not([disabled]) { transform: translateY(4px); box-shadow: 0 1px 0 #880022, 0 2px 5px rgba(0,0,0,0.6); }
+        .arcade-btn:disabled { background: #2a2d3d !important; box-shadow: 0 3px 0 #1a1c26 !important; cursor: not-allowed; opacity: 0.3; }
+        .btn-blue { background: radial-gradient(circle, #00f0ff 0%, #0077b6 100%); box-shadow: 0 5px 0 #005580, 0 8px 15px rgba(0,0,0,0.6); }
+        .btn-blue:active:not([disabled]) { box-shadow: 0 1px 0 #005580, 0 2px 5px rgba(0,0,0,0.6); }
+        
+        .btn-green {
+            background: linear-gradient(135deg, #39ff14 0%, #047857 100%); border-bottom: 5px solid #024e38;
+            border-radius: 10px; width: 100%; height: 45px; grid-column: span 2; font-size: 0.9rem; font-weight: bold; box-shadow: 0 4px 10px rgba(57, 255, 20, 0.2);
+        }
+
+        .game-over-overlay {
+            display: none; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(4, 5, 9, 0.98); z-index: 100;
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        .game-over-overlay h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 3rem; color: var(--neon-pink); text-shadow: 0 0 15px var(--neon-pink); margin: 0 0 15px 0; }
+        .game-over-overlay p { max-width: 550px; font-size: 1.2rem; color: #94a3b8; line-height: 1.5; margin-bottom: 25px;}
+    </style>
+</head>
+<body>
+
+<div class="arcade-cabinet">
+    <div class="marquee">
+        INFLATION WARS: TACTICAL EDITION
+        <span>HỆ THỐNG AN NINH KINH TẾ: <b id="stability-text" style="color:var(--neon-green)">100% UNBROKEN</b></span>
+    </div>
+
+    <div class="arcade-screen">
+        <!-- CỘT TRÁI: THẺ THỬ THÁCH -->
+        <div class="screen-column">
+            <h2 style="color: var(--neon-pink)">CHALLENGE CARDS</h2>
+            <div class="challenge-list" id="challenge-list"></div>
+        </div>
+
+        <!-- KHU VỰC GIỮA: THÔNG SỐ VÀ ĐỒ THỊ -->
+        <div class="center-display">
+            <div class="top-status">
+                <div class="status-box"><div>CYCLE (MONTH)</div><span id="stat-month" style="color:#fff">1</span></div>
+                <div class="status-box"><div>INFLATION</div><span id="stat-inflation" style="color:var(--neon-green)">2.0%</span></div>
+                <div class="status-box"><div>GDP GROWTH</div><span id="stat-gdp" style="color:var(--neon-blue)">4.0%</span></div>
+                <div class="status-box"><div>POPULARITY</div><span id="stat-approval" style="color:var(--neon-yellow)">100%</span></div>
+            </div>
+
+            <div class="chart-frame">
+                <canvas id="arcadeChart"></canvas>
+            </div>
+
+            <!-- Combo Khen thưởng động -->
+            <div class="combo-alert" id="combo-box">🔥 GOLDEN RUSH COMBO: Tăng trưởng lý tưởng! +5% Lòng dân</div>
+
+            <div class="news-feed">
+                <label>MONITOR:</label>
+                <div class="news-marquee" id="news-text">Hệ thống vĩ mô ổn định. Đang chờ phân bổ chính sách đầu kỳ...</div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: CONSOLE ĐIỀU KHIỂN & DANH HIỆU -->
+        <div class="screen-column hardware-panel">
+            <h2 style="color: var(--neon-blue)">TACTICAL CONSOLE</h2>
+            
+            <!-- Hệ thống Danh hiệu ẩn kích thích cày cuốc -->
+            <div class="achievement-box">
+                <div style="font-size:0.75rem; color:#64748b; font-weight:bold; margin-bottom:6px; font-family:'Orbitron'">ACHIEVEMENTS:</div>
+                <div class="achievement-item" id="ach-1"><span>🏆 Sống sót 12 chu kỳ</span><span>🔒</span></div>
+                <div class="achievement-item" id="ach-2"><span>📈 Thần tài GDP (&gt;6%)</span><span>🔒</span></div>
+                <div class="achievement-item" id="ach-3"><span>🎯 Kẻ kiểm soát (Lạm phát ~2%)</span><span>🔒</span></div>
+            </div>
+
+            <div class="arcade-slider">
+                <label>INTEREST (LÃI SUẤT) <span><b id="val-interest" style="color:var(--neon-blue)">5.0</b>%</span></label>
+                <input type="range" id="input-interest" min="0" max="20" step="0.5" value="5">
+            </div>
+
+            <div class="arcade-slider">
+                <label>PRINT M2 (IN TIỀN) <span><b id="val-print" style="color:var(--neon-pink)">+0.0</b>%</span></label>
+                <input type="range" id="input-print" min="0" max="15" step="0.5" value="0">
+            </div>
+
+            <div class="arcade-slider">
+                <label>TAX RATE (THUẾ SUẤT) <span><b id="val-tax" style="color:var(--neon-yellow)">10.0</b>%</span></label>
+                <input type="range" id="input-tax" min="5" max="40" step="0.5" value="10">
+            </div>
+
+            <div class="action-pad">
+                <div class="btn-wrapper">
+                    <button class="arcade-btn" id="btn-evt-1" disabled>A</button>
+                    <span>DECISION A</span>
+                </div>
+                <div class="btn-wrapper">
+                    <button class="arcade-btn btn-blue" id="btn-evt-2" disabled>B</button>
+                    <span>DECISION B</span>
+                </div>
+                <button class="arcade-btn btn-green" id="btn-next-month">EXECUTE NEXT CYCLE ➔</button>
+            </div>
+        </div>
+
+        <!-- OVERLAY THUA CUỘC -->
+        <div class="game-over-overlay" id="game-over-screen">
+            <h1>CRITICAL CRASH</h1>
+            <p id="game-over-reason">Hệ thống tài chính bị phá hủy.</p>
+            <div style="font-family:'Orbitron'; font-size:1.1rem; color:var(--neon-yellow); margin-bottom:30px;">SURVIVED TIMES: <span id="game-over-months">0</span> CYCLES</div>
+            <button class="arcade-btn btn-blue" id="btn-restart" style="width:240px; border-radius:10px; height:50px; font-size:0.9rem;">INSERT COIN (RESET)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. ÂM THANH GIẢ LẬP (Audio Synthesis không cần file mp3 ngoài)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, duration, type="sine") {
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    // Các sự kiện ngẫu nhiên mang tính đột biến cao
+    const challengesData = [
+    // --- NHÓM 1: CRITICAL (KHỦNG HOẢNG ĐỎ - SẬP NGUỒN CUNG, LẠM PHÁT VỌT) ---
+    { id: 1, title: "KHỦNG HOẢNG DẦU MỎ", icon: "🔥", desc: "Chi phí logistics tăng vọt đè nặng lên giá thành sản phẩm bán lẻ.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Trợ giá khẩn cấp (-10% Lòng dân)", op2: "Để thả nổi thị trường (+3.0% Lạm phát)" },
+    { id: 2, title: "THIÊN TAI ĐỊA CHẤN", icon: "🌪️", desc: "Bão lớn tàn phá các khu công nghiệp trọng điểm miền duyên hải.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Chi ngân sách tái thiết (+4% Tiền M2)", op2: "Chấp nhận giảm sản lượng (-3.5% GDP)" },
+    { id: 3, title: "KHỦNG HOẢNG NĂNG LƯỢNG", icon: "⚡", desc: "Các mỏ than cạn kiệt, hệ thống điện lưới quốc gia buộc phải cắt luân phiên.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Nhập khẩu điện giá cao (-3.0% GDP)", op2: "Cắt điện luân phiên dân sự (-18% Lòng dân)" },
+    { id: 4, title: "ĐỨT GÃY CHUỖI CUNG ỨNG", icon: "📦", desc: "Kênh đào vận tải quốc tế đóng cửa do xung đột, linh kiện điện tử khan hiếm.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Tìm nguồn thay thế nội địa (-2.5% GDP)", op2: "Chấp nhận khan hiếm hàng (+2.8% Lạm phát)" },
+    { id: 5, title: "MẤT MÙA LƯƠNG THỰC", icon: "🥀", desc: "Hạn hán nghiêm trọng làm sụt giảm 40% sản lượng lúa gạo quốc gia.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Xả kho dự trữ chiến lược (-2% GDP)", op2: "Giá lương thực tăng vọt (+3.5% Lạm phát)" },
+    { id: 6, title: "DỊCH BỆNH GIA SÚC", icon: "🐖", desc: "Dịch sốt bùng phát khiến chuỗi cung ứng thực phẩm tươi sống tê liệt.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Hỗ trợ tài chính nông dân (+3% Tiền M2)", op2: "Chấp nhận bão giá chợ đen (+2.2% Lạm phát)" },
+    { id: 7, title: "ĐÌNH CÔNG NGÀNH GIAO THÔNG", icon: "🚇", desc: "Các nghiệp đoàn vận tải đồng loạt bãi công đòi tăng lương cơ bản.", tag: "CRITICAL", color: "var(--neon-pink)", op1: "Chấp thuận yêu sách tăng lương (+2% Lạm phát)", op2: "Dùng biện pháp cứng rắn (-12% Lòng dân)" },
+
+    // --- NHÓM 2: DANGEROUS (HIỂM HỌA TÍM - ĐÁNH VÀO TÀI CHÍNH & LÒNG DÂN) ---
+    { id: 8, title: "LÀN SÓNG ĐẦU CƠ VÀNG", icon: "🕶️", desc: "Người dân mất niềm tin vào nội tệ, đầu cơ găm giữ vàng và USD.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Tăng mạnh lãi suất hạ nhiệt (+3% Lãi)", op2: "Thắt chặt biên giới kiểm soát (-15% Dân)" },
+    { id: 9, title: "CYBER ATTACK NGÂN HÀNG", icon: "👾", desc: "Hệ thống thanh toán bù trừ quốc gia bị hacker tấn công tê liệt 48 giờ.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Dùng quỹ dự trữ bù đắp (-12% Lòng dân)", op2: "In tiền cứu hệ thống (+3.5% Lạm phát)" },
+    { id: 10, title: "RÚT TIỀN HÀNG LOẠT (BANK RUN)", icon: "🏦", desc: "Tin đồn thất thiệt khiến người dân vây kín các ngân hàng rút tiết kiệm.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Bơm tiền bảo hiểm tiền gửi (+4% Tiền M2)", op2: "Giới hạn hạn mức rút quỹ (-14% Lòng dân)" },
+    { id: 11, title: "XUẤT SIÊU LẬU NGOẠI TỆ", icon: "💸", desc: "Các tập đoàn lớn tìm cách tuồn ngoại tệ ra tài khoản nước ngoài.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Thắt chặt quản lý dòng vốn (-2.0% GDP)", op2: "Mất cân bằng cán cân thanh toán (-8% Dân)" },
+    { id: 12, title: "RÒ RỈ THÔNG TIN CHÍNH SÁCH", icon: "🕵️", desc: "Tài liệu mật về việc thay đổi thuế suất bị tuồn ra cho giới đầu cơ.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Hoãn thực thi để điều tra (-1.5% GDP)", op2: "Chấp nhận thị trường hỗn loạn (-10% Lòng dân)" },
+    { id: 13, title: "TỘI PHẠM TIỀN GIẢ bùng phát", icon: "🖨️", desc: "Lượng lớn tiền giả tinh vi tràn vào thị trường tự do gây mất an toàn.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Thu hồi và đổi mẫu tiền mới (-3.0% GDP)", op2: "Chấp nhận thả nổi rủi ro (+2.5% Lạm phát)" },
+    { id: 14, title: "SUY GIẢM DÂN SỐ LAO ĐỘNG", icon: "📉", desc: "Tỷ lệ sinh giảm sút nghiêm trọng tạo áp lực lên quỹ phúc lợi tương lai.", tag: "DANGEROUS", color: "var(--neon-pink)", op1: "Tăng trợ cấp thai sản (+3% Tiền M2)", op2: "Tăng độ tuổi nghỉ hưu toàn quốc (-15% Lòng dân)" },
+
+    // --- NHÓM 3: WARNING (CẢNH BÁO VÀNG - BIẾN ĐỘNG THỊ TRƯỜNG TOÀN CẦU) ---
+    { id: 15, title: "BONG BÓNG TÍN DỤNG", icon: "🏢", desc: "Thị trường bất động sản đóng băng làm ngưng trệ dòng tiền ngân hàng.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Bơm thanh khoản cứu nguy (+5% Tiền M2)", op2: "Mặc kệ thị trường tự xử lý (-4% GDP)" },
+    { id: 16, title: "CHIẾN TRANH THƯƠNG MẠI", icon: "⚔️", desc: "Siêu cường quốc áp thuế bảo hộ lên toàn bộ hàng xuất khẩu mũi nhọn.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Hạ giá nội tệ để cạnh tranh (+2% Lạm phát)", op2: "Chuyển hướng tiêu dùng nội địa (-2% GDP)" },
+    { id: 17, title: "CÁC CHUYÊN GIA BI QUAN", icon: "🎙️", desc: "Quỹ Tiền tệ Quốc tế hạ dự báo xếp hạng tín nhiệm quốc gia xuống mức âm.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Cắt giảm chi tiêu công cứu điểm (-2% GDP)", op2: "Tuyên bố bác bỏ thông tin (-6% Lòng dân)" },
+    { id: 18, title: "LÃI SUẤT TOÀN CẦU TĂNG", icon: "🌍", desc: "Cục Dự trữ Liên bang Mỹ tăng mạnh lãi suất khiến dòng vốn ngoại tháo chạy.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Buộc phải tăng lãi suất nội địa (+2% Lãi)", op2: "Chấp nhận mất giá tỷ giá (+2.0% Lạm phát)" },
+    { id: 19, title: "BÓNG MA LẠM PHÁT NHẬP KHẨU", icon: "🚢", desc: "Giá nguyên liệu thô đầu vào tại các nước đối tác tăng phi mã.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Giảm thuế nhập khẩu hỗ trợ (-2% Thuế)", op2: "Để doanh nghiệp tự gánh chịu (-1.8% GDP)" },
+    { id: 20, title: "BONG BÓNG CHỨNG KHOÁN SỤP ĐỔ", icon: "📉", desc: "Chỉ số tài chính quốc gia bốc hơi 20% giá trị chỉ trong 1 tuần.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Hạ lãi suất kích thích dòng tiền (-2% Lãi)", op2: "Để thị trường tự cân bằng (-3.0% GDP)" },
+    { id: 21, title: "TỶ GIÁ HỐI ĐOÁI BIẾN ĐỘNG", icon: "💱", desc: "Đồng nội tệ mất giá mạnh so với các nước láng giềng.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Bán ngoại tệ dự trữ can thiệp (-1.5% GDP)", op2: "Khuyến khích xuất khẩu (+1.0% GDP)" },
+    { id: 22, title: "THAY ĐỔI TIÊU CHUẨN XANH", icon: "🌿", desc: "Liên minh châu Âu áp luật carbon mới lên hàng nông sản xuất khẩu.", tag: "WARNING", color: "var(--neon-yellow)", op1: "Hỗ trợ gói chuyển đổi xanh (+3% Tiền M2)", op2: "Chấp nhận giảm đơn hàng quốc tế (-2.0% GDP)" },
+
+    // --- NHÓM 4: BENEFIT (THỜI CƠ XANH - PHẦN THƯỞNG KÍCH CẦU) ---
+    { id: 23, title: "BÙNG NỔ CÔNG NGHỆ (AI)", icon: "🛸", desc: "Tối ưu tự động hóa giúp giải phóng năng suất lao động xã hội.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Giảm thuế doanh nghiệp (-2% Thuế)", op2: "Đánh thuế công nghệ mới (+2.0% GDP)" },
+    { id: 24, title: "ĐƯỢC MÙA NÔNG SẢN", icon: "🌾", desc: "Thời tiết thuận lợi, sản lượng lương thực quốc gia đạt kỷ lục.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Xuất khẩu thu ngoại tệ (+1.5% GDP)", op2: "Trợ giá nông dân tích trữ (+5% Lòng dân)" },
+    { id: 25, title: "ĐỔI MỚI HÀNH CHÍNH", icon: "📜", desc: "Cắt giảm 50% thủ tục rườm rà, dòng vốn FDI ồ ạt đổ vào nhà máy.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Tăng thuế thu hồi vốn (+10% Thuế)", op2: "Thả lỏng kích biên độ (+2.5% GDP)" },
+    { id: 26, title: "PHÁT HIỆN MỎ KHOÁNG SẢN MỚI", icon: "💎", desc: "Tìm thấy trữ lượng đất hiếm khổng lồ có giá trị thương mại cực lớn.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Khai thác xuất khẩu thô (+3.0% GDP)", op2: "Giữ làm tài sản dự trữ quốc gia (+6% Dân)" },
+    { id: 27, title: "ĐĂNG CAI SỰ KIỆN QUỐC TẾ", icon: "⚽", desc: "Quốc gia giành quyền tổ chức Giải Thể thao lớn thu hút triệu du khách.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Đầu tư hạ tầng cấp tốc (+4% Tiền M2)", op2: "Kích cầu dịch vụ, du lịch (+2.2% GDP)" },
+    { id: 28, title: "HIỆP ĐỊNH THƯƠNG MẠI TỰ DO", icon: "🤝", desc: "Ký kết thành công FTA với khối kinh tế lớn, thuế xuất khẩu về 0%.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Tập trung sản xuất công nghiệp (+2.8% GDP)", op2: "Giảm giá hàng hóa nội địa (+8% Lòng dân)" },
+    { id: 29, title: "THU HÚT THIÊN TÀI CHẤT XÁM", icon: "🧠", desc: "Chính sách visa mới thu hút hàng ngàn kỹ sư công nghệ cao đến làm việc.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Cấp đất, ưu đãi thuế (-2% Thuế)", op2: "Khai thác nghiên cứu sản xuất (+2.0% GDP)" },
+    { id: 30, title: "XU HƯỚNG TIÊU DÙNG NỘI ĐỊA", icon: "🛍️", desc: "Trào lưu người Việt ưu tiên dùng hàng Việt bùng nổ mạnh mẽ khắp mạng xã hội.", tag: "BENEFIT", color: "var(--neon-green)", op1: "Tăng thuế tiêu thụ hàng ngoại (+5% Thuế)", op2: "Hỗ trợ vốn vay cho local brand (+5% Dân)" }
+];
+
+    let gameData = { month: 1, inflation: 2.0, gdp: 4.0, approval: 100, moneyBase: 1000, goodsBase: 1000, activeEvent: null };
+    let chartHistory = { months: ['M1'], inflation: [2.0], gdp: [4.0], approval: [100] };
+    let economyChart = null;
+    let comboStreak = 0;
+    
+    // BIẾN ĐIỀU KHIỂN TẦN SUẤT SỰ KIỆN KHẨN CẤP
+    let turnsSinceLastEvent = 0; 
+
+    document.getElementById('input-interest').addEventListener('input', e => {
+        document.getElementById('val-interest').textContent = e.target.value;
+        playBeep(400, 0.05);
+    });
+    document.getElementById('input-print').addEventListener('input', e => {
+        document.getElementById('val-print').textContent = '+' + e.target.value;
+        playBeep(500, 0.05);
+    });
+    document.getElementById('input-tax').addEventListener('input', e => {
+        document.getElementById('val-tax').textContent = e.target.value;
+        playBeep(600, 0.05);
+    });
+
+    function initGame() {
+        playBeep(220, 0.3, "square");
+        setTimeout(() => playBeep(440, 0.4, "square"), 150);
+
+        gameData = { month: 1, inflation: 2.0, gdp: 4.0, approval: 100, moneyBase: 1000, goodsBase: 1000, activeEvent: null };
+        chartHistory = { months: ['M1'], inflation: [2.0], gdp: [4.0], approval: [100] };
+        comboStreak = 0;
+        turnsSinceLastEvent = 3; // Cho phép có thể có sự kiện từ những chu kỳ đầu nhưng không dồn dập
+        
+        document.getElementById('game-over-screen').style.display = "none";
+        document.getElementById('combo-box').style.display = "none";
+        document.getElementById('news-text').textContent = "Hệ thống vĩ mổ đã reset thành công. Hãy chứng minh tài thao lược!";
+        
+        document.getElementById('input-interest').value = 5;
+        document.getElementById('input-print').value = 0;
+        document.getElementById('input-tax').value = 10;
+        document.getElementById('val-interest').textContent = "5.0";
+        document.getElementById('val-print').textContent = "+0.0";
+        document.getElementById('val-tax').textContent = "10.0";
+
+        document.getElementById('btn-evt-1').disabled = true;
+        document.getElementById('btn-evt-2').disabled = true;
+
+        document.getElementById('ach-1').className = "achievement-item"; document.getElementById('ach-1').querySelectorAll('span')[1].textContent = "🔒";
+        document.getElementById('ach-2').className = "achievement-item"; document.getElementById('ach-2').querySelectorAll('span')[1].textContent = "🔒";
+        document.getElementById('ach-3').className = "achievement-item"; document.getElementById('ach-3').querySelectorAll('span')[1].textContent = "🔒";
+
+        renderChallengeCards();
+        updateUI();
+        buildChart();
+    }
+
+    function updateUI() {
+        document.getElementById('stat-month').textContent = gameData.month;
+        document.getElementById('stat-inflation').textContent = gameData.inflation.toFixed(1) + "%";
+        document.getElementById('stat-gdp').textContent = gameData.gdp.toFixed(1) + "%";
+        document.getElementById('stat-approval').textContent = Math.round(gameData.approval) + "%";
+
+        let stability = 100 - (Math.abs(gameData.inflation - 2.5) * 5) + (gameData.gdp * 2.5);
+        stability = Math.min(Math.max(Math.round(stability), 0), 100);
+        const stabEl = document.getElementById('stability-text');
+        stabEl.textContent = stability + "% " + (stability > 70 ? "STABLE" : (stability > 40 ? "WARNING" : "CRITICAL"));
+        stabEl.style.color = stability > 70 ? 'var(--neon-green)' : (stability > 40 ? 'var(--neon-yellow)' : 'var(--neon-pink)');
+    }
+
+    function renderChallengeCards() {
+        const container = document.getElementById('challenge-list');
+        container.innerHTML = "";
+        challengesData.forEach(ch => {
+            const card = document.createElement('div');
+            card.className = "challenge-card" + (gameData.activeEvent && gameData.activeEvent.id === ch.id ? " active" : "");
+            card.innerHTML = `
+                <div class="challenge-icon">${ch.icon}</div>
+                <div class="challenge-info">
+                    <h4>${ch.title}</h4>
+                    <p>${ch.desc}</p>
+                    <span class="challenge-tag" style="color:${ch.color}; border: 1px solid ${ch.color}">${ch.tag}</span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // NÂNG CẤP LOGIC: Kiểm soát tần suất xuất hiện hợp lý
+    function triggerRandomEvent() {
+        turnsSinceLastEvent++;
+        
+        // Chỉ xem xét kích hoạt khi đã trải qua ít nhất 3 chu kỳ bình yên
+        if (turnsSinceLastEvent >= 3) { 
+            // Hạ tỷ lệ xuất hiện từ 60% xuống 25% ngẫu nhiên
+            if (Math.random() < 0.25) { 
+                playBeep(150, 0.4, "sawtooth");
+                const randomEvt = challengesData[Math.floor(Math.random() * challengesData.length)];
+                gameData.activeEvent = randomEvt;
+                
+                document.getElementById('news-text').textContent = `⚠️ KHỦNG HOẢNG NỔ RA: ${randomEvt.title}! Nhấn Đưa ra quyết định A hoặc B ngay lập tức.`;
+                renderChallengeCards();
+
+                document.getElementById('btn-evt-1').disabled = false;
+                document.getElementById('btn-evt-2').disabled = false;
+                
+                turnsSinceLastEvent = 0; // Reset bộ đếm bước đệm
+            }
+        }
+    }
+
+    function handleEventChoice(choice) {
+    if (!gameData.activeEvent) return;
+    playBeep(800, 0.1, "sine");
+    const evt = gameData.activeEvent;
+    
+    // BẢNG LOGIC KẾT QUẢ CHO 30 SỰ KIỆN
+    switch(evt.id) {
+        case 1: if(choice === 1) gameData.approval -= 10; else gameData.inflation += 3.0; break;
+        case 2: if(choice === 1) gameData.moneyBase += 120; else gameData.gdp -= 3.5; break;
+        case 3: if(choice === 1) gameData.gdp -= 3.0; else gameData.approval -= 18; break;
+        case 4: if(choice === 1) gameData.gdp -= 2.5; else gameData.inflation += 2.8; break;
+        case 5: if(choice === 1) gameData.gdp -= 2.0; else gameData.inflation += 3.5; break;
+        case 6: if(choice === 1) gameData.moneyBase += 100; else gameData.inflation += 2.2; break;
+        case 7: if(choice === 1) gameData.inflation += 2.0; else gameData.approval -= 12; break;
+        case 8: if(choice === 1) { document.getElementById('input-interest').value = Math.min(parseFloat(document.getElementById('input-interest').value) + 3, 20); } else gameData.approval -= 15; break;
+        case 9: if(choice === 1) gameData.approval -= 12; else gameData.inflation += 3.5; break;
+        case 10: if(choice === 1) gameData.moneyBase += 150; else gameData.approval -= 14; break;
+        case 11: if(choice === 1) gameData.gdp -= 2.0; else gameData.approval -= 8; break;
+        case 12: if(choice === 1) gameData.gdp -= 1.5; else gameData.approval -= 10; break;
+        case 13: if(choice === 1) gameData.gdp -= 3.0; else gameData.inflation += 2.5; break;
+        case 14: if(choice === 1) gameData.moneyBase += 80; else gameData.approval -= 15; break;
+        case 15: if(choice === 1) gameData.moneyBase += 150; else gameData.gdp -= 4.0; break;
+        case 16: if(choice === 1) gameData.inflation += 2.0; else gameData.gdp -= 2.0; break;
+        case 17: if(choice === 1) gameData.gdp -= 2.0; else gameData.approval -= 6; break;
+        case 18: if(choice === 1) { document.getElementById('input-interest').value = Math.min(parseFloat(document.getElementById('input-interest').value) + 2, 20); } else gameData.inflation += 2.0; break;
+        case 19: if(choice === 1) { document.getElementById('input-tax').value = Math.max(parseFloat(document.getElementById('input-tax').value) - 2, 5); } else gameData.gdp -= 1.8; break;
+        case 20: if(choice === 1) { document.getElementById('input-interest').value = Math.max(parseFloat(document.getElementById('input-interest').value) - 2, 0); } else gameData.gdp -= 3.0; break;
+        case 21: if(choice === 1) gameData.gdp -= 1.5; else gameData.gdp += 1.0; break;
+        case 22: if(choice === 1) gameData.moneyBase += 90; else gameData.gdp -= 2.0; break;
+        case 23: if(choice === 1) { document.getElementById('input-tax').value = Math.max(parseFloat(document.getElementById('input-tax').value) - 2, 5); } else gameData.gdp += 2.0; break;
+        case 24: if(choice === 1) gameData.gdp += 1.5; else gameData.approval += 5; break;
+        case 25: if(choice === 1) { document.getElementById('input-tax').value = Math.min(parseFloat(document.getElementById('input-tax').value) + 3, 40); } else gameData.gdp += 2.5; break;
+        case 26: if(choice === 1) gameData.gdp += 3.0; else gameData.approval += 6; break;
+        case 27: if(choice === 1) gameData.moneyBase += 120; else gameData.gdp += 2.2; break;
+        case 28: if(choice === 1) gameData.gdp += 2.8; else gameData.approval += 8; break;
+        case 29: if(choice === 1) { document.getElementById('input-tax').value = Math.max(parseFloat(document.getElementById('input-tax').value) - 2, 5); } else gameData.gdp += 2.0; break;
+        case 30: if(choice === 1) { document.getElementById('input-tax').value = Math.min(parseFloat(document.getElementById('input-tax').value) + 3, 40); } else gameData.approval += 5; break;
+    }
+
+    document.getElementById('news-text').textContent = `Nghị quyết số ${evt.id} [${evt.title}] đã được áp dụng vào nền vĩ mô.`;
+    gameData.activeEvent = null;
+    document.getElementById('btn-evt-1').disabled = true;
+    document.getElementById('btn-evt-2').disabled = true;
+    renderChallengeCards();
+    updateUI();
+}
+
+    function nextMonthCycle() {
+        if (gameData.activeEvent !== null) {
+            playBeep(100, 0.2, "square");
+            alert("BẮT BUỘC PHẢI ẤN CHỌN PHƯƠNG ÁN A HOẶC B ĐỂ GIẢI QUYẾT KHỦNG HOẢNG TRƯỚC!");
+            return;
+        }
+
+        playBeep(330, 0.1, "sine");
+        gameData.month++;
+        
+        const interest = parseFloat(document.getElementById('input-interest').value);
+        const print = parseFloat(document.getElementById('input-print').value);
+        const tax = parseFloat(document.getElementById('input-tax').value);
+
+        gameData.moneyBase += (gameData.moneyBase * (print / 100));
+        gameData.moneyBase -= (gameData.moneyBase * (interest / 250));
+
+        let productRate = 0.5;
+        if (interest > 11) productRate -= 0.25;
+        if (tax > 22) productRate -= 0.3;
+        gameData.goodsBase *= (1 + productRate / 100);
+
+        let targetInflation = ((gameData.moneyBase / gameData.goodsBase) - 1) * 24;
+        targetInflation -= (interest - 5) * 0.5;
+        gameData.inflation = gameData.inflation * 0.5 + targetInflation * 0.5;
+
+        let targetGDP = 4.5 + (print * 0.4) - (interest - 5) * 0.35 - (tax - 10) * 0.2;
+        if (gameData.inflation > 6.0) targetGDP -= (gameData.inflation - 6.0) * 0.8;
+        if (gameData.inflation < 0) targetGDP -= 3.0;
+        gameData.gdp = gameData.gdp * 0.5 + targetGDP * 0.5;
+
+        if (gameData.inflation > 4.5) gameData.approval -= (gameData.inflation - 4.5) * 2;
+        if (gameData.gdp < 1.0) gameData.approval -= 4;
+        if (tax > 18) gameData.approval -= (tax - 18) * 0.8;
+
+        const comboEl = document.getElementById('combo-box');
+        if (gameData.gdp > 4.0 && gameData.inflation >= 1.5 && gameData.inflation <= 3.5) {
+            comboStreak++;
+            gameData.approval += 5;
+            comboEl.textContent = `🔥 GOLDEN RUSH COMBO x${comboStreak}: Kinh tế siêu phát triển! Nhận thêm +5% Lòng dân.`;
+            comboEl.style.display = "block";
+            playBeep(900, 0.15, "sine");
+        } else {
+            comboStreak = 0;
+            comboEl.style.display = "none";
+        }
+
+        gameData.approval = Math.min(Math.max(gameData.approval, 0), 100);
+
+        if(gameData.month >= 12) {
+            const item = document.getElementById('ach-1'); item.className = "achievement-item unlocked"; item.querySelectorAll('span')[1].textContent = "🔓 KHÓA";
+        }
+        if(gameData.gdp >= 6.0) {
+            const item = document.getElementById('ach-2'); item.className = "achievement-item unlocked"; item.querySelectorAll('span')[1].textContent = "🔓 KHÓA";
+        }
+        if(Math.abs(gameData.inflation - 2.0) <= 0.3 && gameData.month > 5) {
+            const item = document.getElementById('ach-3'); item.className = "achievement-item unlocked"; item.querySelectorAll('span')[1].textContent = "🔓 KHÓA";
+        }
+
+        chartHistory.months.push(`M${gameData.month}`);
+        chartHistory.inflation.push(parseFloat(gameData.inflation.toFixed(1)));
+        chartHistory.gdp.push(parseFloat(gameData.gdp.toFixed(1)));
+        chartHistory.approval.push(Math.round(gameData.approval));
+
+        if (chartHistory.months.length > 15) {
+            Object.keys(chartHistory).forEach(k => chartHistory[k].shift());
+        }
+
+        if (economyChart) economyChart.update();
+        updateUI();
+
+        if (checkGameOverConditions()) return;
+        triggerRandomEvent();
+    }
+
+    function checkGameOverConditions() {
+        let isDead = false; let msg = "";
+        if (gameData.inflation >= 22) { isDead = true; msg = "SIÊU LẠM PHÁT: Đồng tiền thành giấy vụn. Người dân đổ xô tích trữ tài sản vật lý."; }
+        else if (gameData.approval <= 0) { isDead = true; msg = "BẠO LOẠN LÒNG DÂN: Khủng hoảng giá cả sinh hoạt kích ngòi làn sóng bãi công lật đổ nội các."; }
+        else if (gameData.gdp <= -6) { isDead = true; msg = "ĐẠI SUY THOÁI: Doanh nghiệp sụp đổ hàng loạt tạo nên làn sóng thất nghiệp kỷ lục."; }
+
+        if (isDead) {
+            playBeep(120, 0.8, "sawtooth");
+            document.getElementById('game-over-reason').textContent = msg;
+            document.getElementById('game-over-months').textContent = gameData.month;
+            document.getElementById('game-over-screen').style.display = "flex";
+            return true;
+        }
+        return false;
+    }
+
+    function buildChart() {
+        const ctx = document.getElementById('arcadeChart').getContext('2d');
+        if (economyChart) economyChart.destroy();
+        economyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartHistory.months,
+                datasets: [
+                    { label: 'Inflation (%)', data: chartHistory.inflation, borderColor: '#ff007f', tension: 0.2, borderWidth: 3 },
+                    { label: 'GDP (%)', data: chartHistory.gdp, borderColor: '#00f0ff', tension: 0.2, borderWidth: 3 },
+                    { label: 'Popularity (%)', data: chartHistory.approval, borderColor: '#ffb703', tension: 0.2, borderWidth: 2, borderDash: [4, 4] }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'Share Tech Mono', size: 11 } } } },
+                scales: {
+                    x: { ticks: { color: '#475569' }, grid: { color: '#1e2235' } },
+                    y: { ticks: { color: '#475569' }, grid: { color: '#1e2235' } }
+                }
+            }
+        });
+    }
+
+    window.onload = () => {
+        initGame();
+        document.getElementById('btn-next-month').addEventListener('click', nextMonthCycle);
+        document.getElementById('btn-evt-1').addEventListener('click', () => handleEventChoice(1));
+        document.getElementById('btn-evt-2').addEventListener('click', () => handleEventChoice(2));
+        document.getElementById('btn-restart').addEventListener('click', initGame);
+    };
+</script>
+</body>
+</html>
